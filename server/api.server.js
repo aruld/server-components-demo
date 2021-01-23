@@ -24,12 +24,14 @@ const {readFileSync} = require('fs');
 const {unlink, writeFile} = require('fs').promises;
 const {pipeToNodeWritable} = require('react-server-dom-webpack/writer');
 const path = require('path');
-const {Pool} = require('pg');
+// const {Pool} = require('pg');
+const {PrismaClient} = require("@prisma/client");
 const React = require('react');
 const ReactApp = require('../src/App.server').default;
 
 // Don't keep credentials in the source tree in a real app!
-const pool = new Pool(require('../credentials'));
+//const pool = new Pool(require('../credentials'));
+const prisma = new PrismaClient()
 
 const PORT = 4000;
 const app = express();
@@ -99,11 +101,19 @@ app.post(
   '/notes',
   handleErrors(async function(req, res) {
     const now = new Date();
-    const result = await pool.query(
-      'insert into notes (title, body, created_at, updated_at) values ($1, $2, $3, $3) returning id',
-      [req.body.title, req.body.body, now]
-    );
-    const insertedId = result.rows[0].id;
+    // const result = await pool.query(
+    //   'insert into notes (title, body, created_at, updated_at) values ($1, $2, $3, $3) returning id',
+    //   [req.body.title, req.body.body, now]
+    // );
+    const newNote = await prisma.notes.create({
+      data: {
+        title: (req.body.title),
+        body: (req.body.body),
+        created_at: now.toISOString(),
+        updated_at: now.toISOString()
+      }
+    })
+    const insertedId = newNote.id;
     await writeFile(
       path.resolve(NOTES_PATH, `${insertedId}.md`),
       req.body.body,
@@ -118,10 +128,18 @@ app.put(
   handleErrors(async function(req, res) {
     const now = new Date();
     const updatedId = Number(req.params.id);
-    await pool.query(
-      'update notes set title = $1, body = $2, updated_at = $3 where id = $4',
-      [req.body.title, req.body.body, now, updatedId]
-    );
+    // await pool.query(
+    //   'update notes set title = $1, body = $2, updated_at = $3 where id = $4',
+    //   [req.body.title, req.body.body, now, updatedId]
+    // );
+    await prisma.notes.update({
+      where: {if: Number(req.params.id)},
+      data: {
+        title: (req.body.title),
+        body: (req.body.body),
+        updated_at: now.toISOString()
+      }
+    })
     await writeFile(
       path.resolve(NOTES_PATH, `${updatedId}.md`),
       req.body.body,
@@ -134,7 +152,10 @@ app.put(
 app.delete(
   '/notes/:id',
   handleErrors(async function(req, res) {
-    await pool.query('delete from notes where id = $1', [req.params.id]);
+    // await pool.query('delete from notes where id = $1', [req.params.id]);
+    await prisma.notes.delete({
+      where: {id: Number(req.params.id)}
+    })
     await unlink(path.resolve(NOTES_PATH, `${req.params.id}.md`));
     sendResponse(req, res, null);
   })
@@ -143,18 +164,26 @@ app.delete(
 app.get(
   '/notes',
   handleErrors(async function(_req, res) {
-    const {rows} = await pool.query('select * from notes order by id desc');
-    res.json(rows);
+    // const {rows} = await pool.query('select * from notes order by id desc');
+    const notes = (await prisma.notes.findMany())
+      .map(note => JSON.stringify(note))
+      .map(note => JSON.parse(note))
+      .sort((a, b) => b.id - a.id)
+    res.json(notes);
   })
 );
 
 app.get(
   '/notes/:id',
   handleErrors(async function(req, res) {
-    const {rows} = await pool.query('select * from notes where id = $1', [
-      req.params.id,
-    ]);
-    res.json(rows[0]);
+    // const {rows} = await pool.query('select * from notes where id = $1', [
+    //   req.params.id,
+    // ]);
+    const result = JSON.stringify(await prisma.notes.findUnique({
+      where: {id: Number(req.params.id)}
+    }))
+    const note = JSON.parse(result || 'null')
+    res.json(note);
   })
 );
 
