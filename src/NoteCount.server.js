@@ -1,4 +1,5 @@
 import {db} from './db.server';
+// import { PrismaClient } from '@prisma/client'
 
 export default function NoteCount({searchText}) {
     // const notes = fetch('http://localhost:4000/notes').json();
@@ -9,8 +10,16 @@ export default function NoteCount({searchText}) {
     // const notes = db.query(
     //   `select * from notes where title ilike $1`, ['%' + searchText + '%']
     // ).rows;
-    const notes = db.notes.findMany()
-    let count = notes.length;
+
+    // const db = new PrismaClient()
+
+    const count = db.notes.count({
+      where: {
+        title: {
+          contains: '%' + searchText + '%'
+        },
+      },
+    })
     let singular = 'note';
     let output = singular
     if (count !== 1) {
@@ -19,7 +28,7 @@ export default function NoteCount({searchText}) {
 
     return count > 0 ? (
         <div className="notes-empty">
-            <p>{notes.length} {output} found</p>
+            <p>{count} {output} found</p>
          </div>   
     ) : (
         <div className="notes-empty">

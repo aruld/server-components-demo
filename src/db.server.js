@@ -6,5 +6,5 @@
  *
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from 'react-prisma'
 export const db = new PrismaClient()
