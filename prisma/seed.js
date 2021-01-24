@@ -53,7 +53,6 @@ async function main() {
       console.log(`new note created`, newNote.id);
     })
   );
-  console.log(`database seeded`);
 }
 
 main()

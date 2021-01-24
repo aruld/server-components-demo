@@ -25,13 +25,13 @@ const {unlink, writeFile} = require('fs').promises;
 const {pipeToNodeWritable} = require('react-server-dom-webpack/writer');
 const path = require('path');
 // const {Pool} = require('pg');
-const {PrismaClient} = require("@prisma/client");
+const {PrismaClient} = require('@prisma/client');
 const React = require('react');
 const ReactApp = require('../src/App.server').default;
 
 // Don't keep credentials in the source tree in a real app!
 //const pool = new Pool(require('../credentials'));
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 const PORT = 4000;
 const app = express();
@@ -154,8 +154,8 @@ app.delete(
   handleErrors(async function(req, res) {
     // await pool.query('delete from notes where id = $1', [req.params.id]);
     await prisma.notes.delete({
-      where: {id: Number(req.params.id)}
-    })
+      where: {id: Number(req.params.id)},
+    });
     await unlink(path.resolve(NOTES_PATH, `${req.params.id}.md`));
     sendResponse(req, res, null);
   })
@@ -165,10 +165,7 @@ app.get(
   '/notes',
   handleErrors(async function(_req, res) {
     // const {rows} = await pool.query('select * from notes order by id desc');
-    const notes = (await prisma.notes.findMany())
-      .map(note => JSON.stringify(note))
-      .map(note => JSON.parse(note))
-      .sort((a, b) => b.id - a.id)
+    const notes = await prisma.notes.findMany()
     res.json(notes);
   })
 );
@@ -179,10 +176,9 @@ app.get(
     // const {rows} = await pool.query('select * from notes where id = $1', [
     //   req.params.id,
     // ]);
-    const result = JSON.stringify(await prisma.notes.findUnique({
-      where: {id: Number(req.params.id)}
-    }))
-    const note = JSON.parse(result || 'null')
+    const note = await prisma.notes.findUnique({
+      where: {id: Number(req.params.id)},
+    });
     res.json(note);
   })
 );
