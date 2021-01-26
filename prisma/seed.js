@@ -1,10 +1,14 @@
 // prisma/seed.js
 
 'use strict';
-
+const fs = require('fs');
+const path = require('path');
+const {readdir, unlink, writeFile} = require('fs/promises');
 const {PrismaClient} = require('@prisma/client');
 
 const prisma = new PrismaClient();
+
+const NOTES_PATH = './notes';
 
 const startOfYear = require('date-fns/startOfYear');
 const now = new Date();
@@ -21,12 +25,14 @@ const seedData = [
     title: 'Meeting Notes',
     body: 'This is an example note. It contains **Markdown**!',
     created_at: randomDateBetween(startOfThisYear, now).toISOString(),
+    updated_at: now.toISOString(),
   },
   {
     title: 'Make a thing',
     body: `It's very easy to make some words **bold** and other words *italic* with
   Markdown. You can even [link to React's website!](https://www.reactjs.org).`,
     created_at: randomDateBetween(startOfThisYear, now).toISOString(),
+    updated_at: now.toISOString(),
   },
   {
     title:
@@ -36,23 +42,33 @@ const seedData = [
   
   ![This app is powered by React](https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/React_Native_Logo.png/800px-React_Native_Logo.png)`,
     created_at: randomDateBetween(startOfThisYear, now).toISOString(),
+    updated_at: now.toISOString(),
   },
   {
     title: 'I wrote this note today',
     body: 'It was an excellent note.',
     created_at: now.toISOString(),
+    updated_at: now.toISOString(),
   },
 ];
 
 // A `main` function so that we can use async/await
 async function main() {
-  await prisma.notes.deleteMany();
+  // await prisma.notes.deleteMany();
   const res = await Promise.all(
     seedData.map((data) => {
       const newNote = prisma.notes.create({data});
-      console.log(`new note created`, newNote.id);
+      return newNote;
     })
   );
+  res.map(({id, body}) => {
+    const data = new Uint8Array(Buffer.from(body));
+    return writeFile(path.resolve(NOTES_PATH, `${id}.md`), data, (err) => {
+      if (err) {
+        throw err;
+      }
+    });
+  });
 }
 
 main()
