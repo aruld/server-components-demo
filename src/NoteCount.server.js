@@ -1,5 +1,4 @@
 import {db} from './db.server';
-// import { PrismaClient } from '@prisma/client'
 
 export default function NoteCount({searchText}) {
     // const notes = fetch('http://localhost:4000/notes').json();
@@ -10,8 +9,6 @@ export default function NoteCount({searchText}) {
     // const notes = db.query(
     //   `select * from notes where title ilike $1`, ['%' + searchText + '%']
     // ).rows;
-
-    // const db = new PrismaClient()
 
     const count = db.notes.count({
       where: {
